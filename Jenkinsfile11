@@ -2,40 +2,38 @@ pipeline {
   agent any
 
   stages {
-      stage('Build') {
-      agent {
-        docker { image 'django:latest' }
-      }
+
+    stage('Build') {
       steps {
-            // Run the Django server in the foreground
-            sh 'python3 manage.py' 
-            echo 'Django server started. Proceeding to next stage...'
+        echo 'Building Docker image...'
+        sh 'docker build -t todo:latest .'
       }
     }
 
     stage('Deploy') {
       steps {
-        // Build the image
-        sh 'docker build -t todo .'
-        
-        // Run the container with a specific name (e.g., 'todo_container')
-        sh 'docker run -d -p 8000:8000 --name todo_container todo'
-      }
-      post {
-        always {
-          echo 'Waiting for 2 minutes before stopping and deleting containers...'
-          // Sleep for 2 minutes before stopping and deleting containers
-          sleep 120
+        echo 'Stopping & removing old container (if exists)...'
+        sh 'docker rm -f todo-production || true'
 
-          // Stop the container using its name
-          echo 'Stopping container...'
-          sh 'docker stop todo_container'
-
-          // Remove the container
-          echo 'Removing container...'
-          sh 'docker rm todo_container'
-        }
+        echo 'Running new container...'
+        sh '''
+        docker run -d \
+        --name todo-production \
+        -p 8000:8000 \
+        --restart always \
+        todo:latest
+        '''
       }
+    }
+  }
+
+  post {
+    success {
+      echo 'Deployment successful ✔'
+    }
+
+    failure {
+      echo 'Deployment failed ❌'
     }
   }
 }
