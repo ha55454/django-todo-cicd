@@ -12,7 +12,7 @@ pipeline {
 
         stage('Deploy Container') {
             steps {
-                echo 'Removing old container if exists...'
+                echo 'Stopping & removing old container...'
                 sh 'docker rm -f todo-production || true'
 
                 echo 'Running new container...'
